@@ -6,12 +6,15 @@ import org.json.JSONObject;
 import java.util.HashMap;
 
 public class BDAipBodyAnalysis {
+    public static final String APP_ID = "";
+    public static final String API_KEY = "";
+    public static final String SECRET_KEY = "";
 
     // 初始化一个AipBodyAnalysis
     private static final AipBodyAnalysis client = new AipBodyAnalysis(
-            SdkParameter.APP_ID,
-            SdkParameter.API_KEY,
-            SdkParameter.SECRET_KEY);
+            APP_ID,
+            API_KEY,
+            SECRET_KEY);
 
     BDAipBodyAnalysis(){
         client.setConnectionTimeoutInMillis(2000);

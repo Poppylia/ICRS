@@ -179,22 +179,23 @@ public class ClassRoomController {
      */
     @PostMapping("/classroomInfo/info")
     public String coversUpload(MultipartFile file) {
-        AipBodyAnalysis client =BDAipBodyAnalysis.getClient();
-        String folder = "D:/workspace/img";
-        File imageFolder = new File(folder);
-        File f = new File(imageFolder, StringUtils.getRandomString(6) + file.getOriginalFilename()
-                .substring(file.getOriginalFilename().length() - 4));
-        if (!f.getParentFile().exists())
-            f.getParentFile().mkdirs();
-        try {
-            file.transferTo(f);
-//            String imgURL = "http://localhost:8443/api/file/" + f.getName();
-//            return imgURL;
-            return classRoomService.analysisPeople(client ,f);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "-1";
-        }
+        return "1";
+//        AipBodyAnalysis client =BDAipBodyAnalysis.getClient();
+//        String folder = "D:/workspace/img";
+//        File imageFolder = new File(folder);
+//        File f = new File(imageFolder, StringUtils.getRandomString(6) + file.getOriginalFilename()
+//                .substring(file.getOriginalFilename().length() - 4));
+//        if (!f.getParentFile().exists())
+//            f.getParentFile().mkdirs();
+//        try {
+//            file.transferTo(f);
+////            String imgURL = "http://localhost:8443/api/file/" + f.getName();
+////            return imgURL;
+//            return classRoomService.analysisPeople(client ,f);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            return "-1";
+//        }
     }
 
 

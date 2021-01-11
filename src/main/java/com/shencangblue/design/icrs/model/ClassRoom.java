@@ -13,6 +13,8 @@ public class ClassRoom {
     private long roomId;//房间iD
     private int roomNum;//房间号码
     private String roomName;//房间名
+    private int rows;//行数
+    private int cols;//列数
     private int capacity;//容量
     private int status;//状态
     private String position;//位置
@@ -56,6 +58,22 @@ public class ClassRoom {
 
     public void setRoomName(String roomName) {
         this.roomName = roomName;
+    }
+
+    public int getRows() {
+        return rows;
+    }
+
+    public void setRows(int rows) {
+        this.rows = rows;
+    }
+
+    public int getCols() {
+        return cols;
+    }
+
+    public void setCols(int cols) {
+        this.cols = cols;
     }
 
     public int getCapacity() {

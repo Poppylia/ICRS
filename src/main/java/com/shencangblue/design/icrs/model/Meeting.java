@@ -17,6 +17,8 @@ public class Meeting {
     private int roomId;//会议室ID
     private int reservationIsTid;//预订为Tid
     private int numberOfParticipants;//参加人数
+    private int seatRow;//座位行位置
+    private int seatCol;//座位列位置
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",  timezone="GMT+8")
     private Timestamp startTime;//开始时间
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",  timezone="GMT+8")
@@ -93,6 +95,22 @@ public class Meeting {
 
     public void setNumberOfParticipants(int numberOfParticipants) {
         this.numberOfParticipants = numberOfParticipants;
+    }
+
+    public int getSeatRow() {
+        return seatRow;
+    }
+
+    public void setSeatRow(int seatRow) {
+        this.seatRow = seatRow;
+    }
+
+    public int getSeatCol() {
+        return seatCol;
+    }
+
+    public void setSeatCol(int seatCol) {
+        this.seatCol = seatCol;
     }
 
     public Timestamp getStartTime() {

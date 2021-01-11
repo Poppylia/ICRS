@@ -70,6 +70,16 @@ public class MeetingService {
     }
 
     /**
+     * 通过房间号、开始结束时间获取占座信息
+     * @param meeting 预定信息
+     * @return 对应的活动列表
+     */
+    @Transactional
+    public Iterable<Meeting> findAllByMeeting(Meeting meeting){
+        return  meetingDao.findAllByRoomIdAndStartTimeLessThanAndEndTimeGreaterThanAndStatusGreaterThan(meeting.getRoomId(), meeting.getEndTime(), meeting.getStartTime(), 0);
+    }
+
+    /**
      * 通过房间号获取活动
      * @param id 房间号
      * @return 对应的活动列表

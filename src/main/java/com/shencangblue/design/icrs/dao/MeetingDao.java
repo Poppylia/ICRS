@@ -40,4 +40,6 @@ public interface MeetingDao extends CrudRepository<Meeting,Long> {
     Meeting findByStartTimeAfterAndEndTimeBeforeAndStatusGreaterThanAndStuName(Timestamp openTime,Timestamp endTime,int status,String empName);
 
     List<Meeting> findAllByEndTimeBetweenAndRoomIdAndStatusGreaterThan(Timestamp beginTime,Timestamp overTime,int RoomId,int status);
+
+    List<Meeting> findAllByRoomIdAndStartTimeLessThanAndEndTimeGreaterThanAndStatusGreaterThan(int roomId, Timestamp endTime, Timestamp startTime, int status);
 }

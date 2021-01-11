@@ -30,7 +30,6 @@ public class MeetingController {
     Timestamp nowTime;
     Timestamp tomTime;
 
-
     /**
      * 保存或者修改会议活动
      *
@@ -98,6 +97,17 @@ public class MeetingController {
     @RequestMapping("/meeting/get/admin")
     public Result getAllMeetingByAdmin() {
         return ResultFactory.buildSuccessResult(meetingService.findAllByStuId("admin"));
+    }
+
+    /**
+     * 获取已预定的座位
+     *
+     * @param meeting 活动与会议
+     * @return 座位信息
+     */
+    @RequestMapping("/meeting/get/seat")
+    public Result getSeat(@RequestBody Meeting meeting) {
+        return ResultFactory.buildSuccessResult(meetingService.findAllByMeeting(meeting));
     }
 
     /**
