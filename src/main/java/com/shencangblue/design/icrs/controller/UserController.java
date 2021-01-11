@@ -8,6 +8,10 @@ import com.shencangblue.design.icrs.result.Result;
 import com.shencangblue.design.icrs.result.ResultFactory;
 import com.shencangblue.design.icrs.service.UserService;
 import com.shencangblue.design.icrs.service.admin.AdminUserRoleService;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.subject.Subject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.HtmlUtils;
@@ -41,6 +45,30 @@ public class UserController {
     public Result updateUserStatus(@RequestBody @Valid User requestUser) {
         userService.updateUserStatus(requestUser);
         return ResultFactory.buildSuccessResult("用户状态更新成功");
+    }
+
+    /**
+     * 修改用户密码
+     * @param username
+     * @param password
+     * @param newPassword
+     * @param confirmPassword
+     * @date 2021/1/13 2:08
+     * @return 封装好的用户重置消息
+    **/
+    @PostMapping("/api/admin/user/password")
+    public Result updatePassword(String username, String password, String newPassword, String confirmPassword) {
+        if(!newPassword.equals(confirmPassword)) {
+            return ResultFactory.buildFailResult("两次输入的新密码不一致");
+        }
+        UsernamePasswordToken usernamePasswordToken = new UsernamePasswordToken(username, password);
+        try {
+            SecurityUtils.getSubject().login(usernamePasswordToken);
+        } catch (AuthenticationException e) {
+            return ResultFactory.buildFailResult("输入的旧密码不正确");
+        }
+        userService.updatePassword(username, newPassword);
+        return ResultFactory.buildSuccessResult("重置密码成功");
     }
 
     /**

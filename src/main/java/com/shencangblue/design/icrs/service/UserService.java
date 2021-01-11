@@ -18,6 +18,7 @@ import javax.transaction.Transactional;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -103,6 +104,16 @@ public class UserService {
         User userInDB = userDAO.findByUsername(user.getUsername());
         userInDB.setEnabled(user.isEnabled());
         userDAO.save(userInDB);
+    }
+
+    public User updatePassword(String username, String newPassword) {
+        User user = userDAO.findByUsername(username);
+        String salt = new SecureRandomNumberGenerator().nextBytes().toString();
+        int times = 2;
+        user.setSalt(salt);
+        String encodedPassword = new SimpleHash("md5", newPassword, salt, times).toString();
+        user.setPassword(encodedPassword);
+        return userDAO.save(user);
     }
 
     public User resetPassword(User user) {

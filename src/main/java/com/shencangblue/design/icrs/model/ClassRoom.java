@@ -4,6 +4,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 @Entity//加入这个注解，Demo就会进行持久化了，在这里没有对@Table进行配置，请自行配置。
 @Table(name = "class_room")
@@ -13,11 +14,14 @@ public class ClassRoom {
     private long roomId;//房间iD
     private int roomNum;//房间号码
     private String roomName;//房间名
+    private int rows;//行数
+    private int cols;//列数
     private int capacity;//容量
     private int status;//状态
     private String position;//位置
     private String description;// 描述
-
+    @Transient
+    private int remainSeats;//剩余座位
 
 
 
@@ -58,12 +62,29 @@ public class ClassRoom {
         this.roomName = roomName;
     }
 
+    public int getRows() {
+        return rows;
+    }
+
+    public void setRows(int rows) {
+        this.rows = rows;
+    }
+
+    public int getCols() {
+        return cols;
+    }
+
+    public void setCols(int cols) {
+        this.cols = cols;
+    }
+
     public int getCapacity() {
         return capacity;
     }
 
     public void setCapacity(int capacity) {
         this.capacity = capacity;
+        this.remainSeats = capacity;
     }
 
     public int getStatus() {
@@ -82,8 +103,6 @@ public class ClassRoom {
         this.description = description;
     }
 
-
-
     public String getPosition() {
         return position;
     }
@@ -92,4 +111,11 @@ public class ClassRoom {
         this.position = position;
     }
 
+    public int getRemainSeats() {
+        return remainSeats;
+    }
+
+    public void setRemainSeats(int remainSeats) {
+        this.remainSeats = remainSeats;
+    }
 }
