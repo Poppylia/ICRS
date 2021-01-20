@@ -6,14 +6,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public interface MeetingDao extends CrudRepository<Meeting,Long> {
     List<Meeting> findAllByRoomId(long id);
 
     List<Meeting> findAllByStuName(String stuName);
-
-    List<Meeting> findAllByRoomName(String roomName);
 
     List<Meeting> findAllByStuNameAndStatus(String stuName,int status);
 
@@ -27,19 +27,20 @@ public interface MeetingDao extends CrudRepository<Meeting,Long> {
 
     List<Meeting> findAllByStartTimeAfterAndEndTimeBefore(Timestamp newTime,Timestamp newTime1);
 
-    List<Meeting> findAllByEndTimeBefore(Timestamp newTime);
+    List<Meeting> findAllByEndTimeBeforeAndStatus(Timestamp newTime, int status);
 
     List<Meeting> findAllByStuNameAndStartTimeBetweenAndStatus(String stuName,Timestamp beginTime,Timestamp overTime,int status);
 
+    List<Meeting> findAllByStartTimeBetweenAndStatusIn(Timestamp beginTime,Timestamp overTime,Collection<Integer> stats);
+
     List<Meeting> findAllByStatus(int status);
-
-    List<Meeting> findAllByEndTimeBetweenAndStatusGreaterThan(Timestamp beginTime,Timestamp overTime,int status);
-
-    List<Meeting> findAllByStartTimeBeforeAndEndTimeAfterAndStatusGreaterThan(Timestamp beginTime,Timestamp overTime,int status);
 
     Meeting findByStartTimeAfterAndEndTimeBeforeAndStatusGreaterThanAndStuName(Timestamp openTime,Timestamp endTime,int status,String empName);
 
-    List<Meeting> findAllByEndTimeBetweenAndRoomIdAndStatusGreaterThan(Timestamp beginTime,Timestamp overTime,int RoomId,int status);
+    List<Meeting> findAllByRoomIdAndStartTimeBeforeAndEndTimeAfterAndStatusGreaterThan(int roomId, Timestamp endTime, Timestamp startTime, int status);
 
-    List<Meeting> findAllByRoomIdAndStartTimeLessThanAndEndTimeGreaterThanAndStatusGreaterThan(int roomId, Timestamp endTime, Timestamp startTime, int status);
+    int countByRoomIdAndStartTimeBeforeAndEndTimeAfterAndStatusGreaterThanAndSeatRowAndSeatCol(int roomId, Timestamp endTime, Timestamp startTime, int status, int seatRow, int seatCol);
+
+    @Query("select m.roomId, count(m.meetingId) as remainSeats from Meeting m where m.startTime < ?2 and m.endTime > ?1 and m.status > 0 group by m.roomId")
+    List<ClassRoom> countSeats(Timestamp startTime, Timestamp endTime);
 }

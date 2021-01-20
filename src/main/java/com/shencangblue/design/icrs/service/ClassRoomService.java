@@ -91,7 +91,7 @@ public class ClassRoomService {
      */
     @Transactional
     public Iterable<ClassRoom> findAllByCapacity(int capacity){
-        return  classRoomDao.findAllByCapacity(capacity);
+        return  classRoomDao.findAllByCapacityBetween(capacity - 50, capacity);
     }
 
     @Transactional

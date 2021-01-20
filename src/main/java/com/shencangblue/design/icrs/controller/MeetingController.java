@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.Resource;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -130,6 +132,9 @@ public class MeetingController {
     @RequestMapping("/meeting/cancel")
     public Result cancelMeeting(@RequestBody Meeting meeting) {
         Meeting meeting_s = meetingService.getById(meeting.getMeetingId());
+        if(meeting_s.getStatus() != 1 || meeting.getEndTime().before(new Date())) {
+            return ResultFactory.buildFailResult("预定已过期或已取消");
+        }
         meeting_s.setStatus(0);
         meeting_s.setCanceledTime(meeting.getCanceledTime());
         meeting_s.setCanceledReason(meeting.getCanceledReason());
@@ -237,6 +242,23 @@ public class MeetingController {
     }
 
     /**
+     * 预约签到
+     */
+    @RequestMapping("/meeting/checkIn")
+    public Result checkMeetIn(@RequestBody Meeting meeting) {
+        Meeting m = meetingService.getById(meeting.getMeetingId());
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.MINUTE, 15);
+        if(m.getStartTime().after(calendar.getTime()) || m.getEndTime().before(new Date())) {
+            return ResultFactory.buildFailResult("当前不在预约时间内");
+        }
+        m.setStatus(2);
+        meetingService.save(m);
+        return ResultFactory.buildSuccessResult("签到成功");
+    }
+
+
+    /**
      * 查询活动是否结束
      * @return 封装好的活动状态提升
      */
@@ -275,6 +297,21 @@ public class MeetingController {
     @RequestMapping("/querySevenDayMeetOfUser")
     public Result querySevenDayMeetOfUser(@RequestBody User requestUser) {
         return ResultFactory.buildSuccessResult(meetingService.querySevenDayMeetOfUser(requestUser.getUsername()));
+    }
+
+    /**
+     * 查询已预约座位统计和违规统计
+     *
+     * @return 预约情况
+     */
+    @RequestMapping("/queryReservationStats")
+    public Result querySevenDayMeetOfUser(@RequestBody Meeting meeting) {
+        List<Integer> status = new ArrayList<>(2);
+        status.add(meeting.getStatus());
+        if(meeting.getStatus() == 1) {
+            status.add(2);
+        }
+        return ResultFactory.buildSuccessResult(meetingService.queryReservationStats(meeting.getStartTime(), meeting.getEndTime(), status));
     }
 
     /**

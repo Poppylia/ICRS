@@ -6,6 +6,7 @@ import com.shencangblue.design.icrs.model.ClassRoom;
 import com.shencangblue.design.icrs.result.Result;
 import com.shencangblue.design.icrs.result.ResultFactory;
 import com.shencangblue.design.icrs.service.ClassRoomService;
+import com.shencangblue.design.icrs.service.MeetingService;
 import com.shencangblue.design.icrs.utils.BDAipBodyAnalysis;
 import com.shencangblue.design.icrs.utils.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -14,12 +15,18 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
 public class ClassRoomController {
     @Resource
     private ClassRoomService classRoomService;
+    @Resource
+    private MeetingService meetingService;
 
     /**
      * 保存新的或者修改教室
@@ -131,13 +138,24 @@ public class ClassRoomController {
      */
     @CrossOrigin
     @RequestMapping("/search")
-    public Iterable<ClassRoom> searchResult(@RequestParam("keywords") String keywords){
+    public Iterable<ClassRoom> searchResult(@RequestParam("keywords") String keywords, Timestamp startTime, Timestamp endTime){
+        Iterable<ClassRoom> classRooms;
         if ("".equals(keywords)){
-            return classRoomService.getAll();
+            classRooms = classRoomService.getAll();
+        } else {
+            classRooms = classRoomService.search(keywords);
         }
-        else {
-            return classRoomService.search(keywords);
+        if(startTime == null || endTime == null) {
+            return classRooms;
         }
+        List<ClassRoom> roomSeats = meetingService.countOccupySeats(startTime, endTime);
+        if(!roomSeats.isEmpty()) {
+            Map<Long, Integer> map = roomSeats.stream().collect(
+                Collectors.toMap(ClassRoom::getRoomId, ClassRoom::getRemainSeats, (l, r) -> l));
+            classRooms.forEach(classRoom -> classRoom.setRemainSeats(classRoom.getCapacity() -
+                map.getOrDefault(classRoom.getRoomId(), 0)));
+        }
+        return classRooms;
     }
 
     /**

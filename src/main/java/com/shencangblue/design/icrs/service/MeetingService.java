@@ -1,15 +1,16 @@
 package com.shencangblue.design.icrs.service;
 
 import com.shencangblue.design.icrs.dao.MeetingDao;
+import com.shencangblue.design.icrs.model.ClassRoom;
 import com.shencangblue.design.icrs.model.Meeting;
-import com.shencangblue.design.icrs.result.ResultFactory;
+
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.annotation.Resource;
 import javax.transaction.Transactional;
 import java.sql.Timestamp;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -76,7 +77,7 @@ public class MeetingService {
      */
     @Transactional
     public Iterable<Meeting> findAllByMeeting(Meeting meeting){
-        return  meetingDao.findAllByRoomIdAndStartTimeLessThanAndEndTimeGreaterThanAndStatusGreaterThan(meeting.getRoomId(), meeting.getEndTime(), meeting.getStartTime(), 0);
+        return meetingDao.findAllByRoomIdAndStartTimeBeforeAndEndTimeAfterAndStatusGreaterThan(meeting.getRoomId(), meeting.getEndTime(), meeting.getStartTime(), 0);
     }
 
     /**
@@ -175,9 +176,13 @@ public class MeetingService {
     public Iterable<Meeting> findAllByStartTimeAfterAndEndTimeBefore(Timestamp newTime, Timestamp nowTime1){
         return meetingDao.findAllByStartTimeAfterAndEndTimeBefore(newTime,nowTime1);
     }
+
+    /**
+     * 查询过期未签到预约
+     */
     @Transactional
     public Iterable<Meeting> findAllByEndTimeBefore(Timestamp newTime){
-        return meetingDao.findAllByEndTimeBefore(newTime);
+        return meetingDao.findAllByEndTimeBeforeAndStatus(newTime, 1);
     }
 
     /**
@@ -196,6 +201,15 @@ public class MeetingService {
     }
 
     /**
+     * 查询已预约座位统计和违规统计
+     * @return 预约情况
+     */
+    @Transactional
+    public Iterable<Meeting> queryReservationStats(Timestamp beginTime,Timestamp overTime, Collection<Integer> stats){
+        return meetingDao.findAllByStartTimeBetweenAndStatusIn(beginTime, overTime, stats);
+    }
+
+    /**
      * 依照状态查询活动-重新封装模式
      * @return 预约情况
      */
@@ -211,18 +225,8 @@ public class MeetingService {
      */
     @Transactional
     public boolean checkTimeConflict(Meeting meeting){
-        if (meetingDao.findAllByEndTimeBetweenAndRoomIdAndStatusGreaterThan(meeting.getStartTime(),meeting.getEndTime(),meeting.getRoomId(),0).size()!=0){
-            System.out.println("startTime error");
-            return false;
-        }else {
-            if (meetingDao.findAllByEndTimeBetweenAndRoomIdAndStatusGreaterThan(meeting.getStartTime(),meeting.getEndTime(),meeting.getRoomId(),0).size()!=0){
-                System.out.println("endTime error");
-                return false;
-            }else {
-                System.out.println("check startTime and endTime");
-                return meetingDao.findAllByEndTimeBetweenAndRoomIdAndStatusGreaterThan(meeting.getStartTime(), meeting.getEndTime(),meeting.getRoomId(),0).size() == 0;
-            }
-        }
+        return meetingDao.countByRoomIdAndStartTimeBeforeAndEndTimeAfterAndStatusGreaterThanAndSeatRowAndSeatCol(meeting.getRoomId(), meeting.getEndTime(),
+            meeting.getStartTime(), 0, meeting.getSeatRow(), meeting.getSeatCol()) == 0;
     }
 
     /**
@@ -236,5 +240,13 @@ public class MeetingService {
     @Transactional
     public Meeting meetingTimeVerification(Timestamp newTime,Timestamp endTime,int status,String username){
         return meetingDao.findByStartTimeAfterAndEndTimeBeforeAndStatusGreaterThanAndStuName(newTime,endTime,status,username);
+    }
+
+    /**
+     * 根据时间统计占座数量
+     */
+    @Transactional
+    public List<ClassRoom> countOccupySeats(Timestamp startTime,Timestamp endTime){
+        return meetingDao.countSeats(startTime, endTime);
     }
 }
