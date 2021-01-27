@@ -1,10 +1,12 @@
 package com.shencangblue.design.icrs.model;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Table;
-import javax.persistence.Transient;
+import javax.persistence.*;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Entity//加入这个注解，Demo就会进行持久化了，在这里没有对@Table进行配置，请自行配置。
 @Table(name = "class_room")
@@ -84,7 +86,6 @@ public class ClassRoom {
 
     public void setCapacity(int capacity) {
         this.capacity = capacity;
-        this.remainSeats = capacity;
     }
 
     public int getStatus() {
@@ -117,5 +118,22 @@ public class ClassRoom {
 
     public void setRemainSeats(int remainSeats) {
         this.remainSeats = remainSeats;
+    }
+
+    @PostLoad
+    public void setRemainSeats() {
+        this.remainSeats = this.capacity;
+    }
+
+    public static void main(String[] args) {
+        Clock baseclock = Clock.fixed(Instant.parse("1970-01-31T10:15:30.00Z"),
+                ZoneId.of("Asia/Calcutta"));
+        System.out.println("Instant of Base class "
+                + baseclock.instant());
+        Clock clock3 = Clock.tick(baseclock,
+                Duration.ofDays(5));
+        System.out.println("Instant of Clock2 when duration"
+                + " = 5 days is "
+                + clock3.instant());
     }
 }

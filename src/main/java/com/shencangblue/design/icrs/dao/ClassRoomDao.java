@@ -1,6 +1,7 @@
 package com.shencangblue.design.icrs.dao;
 
 import com.shencangblue.design.icrs.model.ClassRoom;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 

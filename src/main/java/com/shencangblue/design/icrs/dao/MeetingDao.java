@@ -1,9 +1,9 @@
 package com.shencangblue.design.icrs.dao;
 
-import com.shencangblue.design.icrs.model.ClassRoom;
 import com.shencangblue.design.icrs.model.Meeting;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 
 import java.sql.Timestamp;
 import java.util.Collection;
@@ -41,6 +41,6 @@ public interface MeetingDao extends CrudRepository<Meeting,Long> {
 
     int countByRoomIdAndStartTimeBeforeAndEndTimeAfterAndStatusGreaterThanAndSeatRowAndSeatCol(int roomId, Timestamp endTime, Timestamp startTime, int status, int seatRow, int seatCol);
 
-    @Query("select m.roomId, count(m.meetingId) as remainSeats from Meeting m where m.startTime < ?2 and m.endTime > ?1 and m.status > 0 group by m.roomId")
-    List<ClassRoom> countSeats(Timestamp startTime, Timestamp endTime);
+    @Query(nativeQuery=true, value = "select m.room_id as roomId, count(m.meeting_id) as remainSeats from meeting m where m.end_time > :startTime and m.start_time < :endTime and  m.status > 0 group by m.room_id")
+    List<Map<String, Long>> countSeats(@Param("startTime") String startTime, @Param("endTime") String endTime);
 }

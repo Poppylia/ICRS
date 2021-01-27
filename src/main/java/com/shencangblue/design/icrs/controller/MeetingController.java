@@ -193,60 +193,6 @@ public class MeetingController {
     }
 
     /**
-     * 查询当前日期所有教室预约情况
-     *
-     * @return 预约情况
-     */
-    @RequestMapping("/queryReservationOfCurrentDate")
-    public Result QueryReservationOfCurrentDate() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
-
-        Iterable<Meeting> meetings = meetingService.findAllByStartTimeBetweenAndStatusGreaterThan(Timestamp.valueOf(startOfDay), Timestamp.valueOf(endOfDay), 0);
-
-        Table<Integer, Integer, Integer> table = HashBasedTable.create();
-        for (Meeting meeting : meetings) {
-            int start = meeting.getStartTime().toLocalDateTime().plusMinutes(30).getHour();
-            int end = meeting.getEndTime().toLocalDateTime().minusMinutes(30).getHour();
-            for (int i = start; i <= end; i++) {
-                Integer count = table.get(i, meeting.getRoomId());
-                count = count != null? count + 1 : 1;
-                table.put(i, meeting.getRoomId(), count);
-            }
-        }
-        List<int[]> list = table.cellSet().stream().map(cell -> new int[]{cell.getRowKey(), cell.getColumnKey(), cell.getValue()}).collect(Collectors.toList());
-
-        return ResultFactory.buildSuccessResult(list);
-    }
-
-    /**
-     * 查询活动预约的状态
-     *
-     * @return
-     */
-    @RequestMapping("/queryReservationOfCurrentDateRoom")
-    public Result QueryReservationOfCurrentDateRoom() {
-        List<String> list = new ArrayList<>();
-        nowTime = new Timestamp(new Date().getTime());
-        tomTime = new Timestamp(new Date().getTime());
-        nowTime.setHours(0);
-        nowTime.setSeconds(0);
-        nowTime.setMinutes(0);
-        nowTime.setNanos(0);
-        tomTime.setHours(0);
-        tomTime.setSeconds(0);
-        tomTime.setMinutes(0);
-        tomTime.setNanos(0);
-        tomTime.setDate(tomTime.getDate() + 1);
-        for (Meeting meeting : meetingService.findAllByStartTimeBetweenAndStatusGreaterThan(nowTime, tomTime, 0)) {
-
-            list.add(meeting.getRoomName());
-            ;
-        }
-        return ResultFactory.buildSuccessResult(list);
-    }
-
-    /**
      * 预约签到
      */
     @RequestMapping("/meeting/checkIn")
@@ -295,6 +241,37 @@ public class MeetingController {
     }
 
     /**
+     * 查询当前日期所有教室预约情况
+     *
+     * @return 预约情况
+     */
+    @RequestMapping("/queryReservationOfCurrentDate")
+    public Result QueryReservationOfCurrentDate() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+
+        Iterable<Meeting> meetings = meetingService.findAllByStartTimeBetweenAndStatusGreaterThan(Timestamp.valueOf(startOfDay), Timestamp.valueOf(endOfDay), 0);
+
+        Map<Integer, String> roomId2Names = new TreeMap<>();
+        Table<Integer, Integer, Integer> table = HashBasedTable.create();
+        for (Meeting meeting : meetings) {
+            int start = meeting.getStartTime().toLocalDateTime().plusMinutes(30).getHour();
+            int end = meeting.getEndTime().toLocalDateTime().minusMinutes(30).getHour();
+            for (int i = start; i <= end; i++) {
+                Integer count = table.get(i, meeting.getRoomId());
+                count = count != null? count + 1 : 1;
+                table.put(i, meeting.getRoomId(), count);
+            }
+            roomId2Names.put(meeting.getRoomId(), meeting.getRoomName());
+        }
+        List<Object[]> list = table.cellSet().stream().map(cell ->
+                new Object[]{cell.getRowKey(), roomId2Names.get(cell.getColumnKey()), cell.getValue()})
+                .collect(Collectors.toList());
+
+        return ResultFactory.buildSuccessResult(list);
+    }
+
+    /**
      * 查询七天内所有用户会议所有教室预约情况
      *
      * @return 预约情况
@@ -305,7 +282,7 @@ public class MeetingController {
     }
 
     /**
-     * 查询已预约座位统计和违规统计
+     * 查询近一个月座位统计和违规统计(按天)
      *
      * @return 预约情况
      */
@@ -340,7 +317,7 @@ public class MeetingController {
     }
 
     /**
-     * 查询已预约座位统计和违规统计
+     * 查询近一年座位统计和违规统计(按月)
      *
      * @return 预约情况
      */

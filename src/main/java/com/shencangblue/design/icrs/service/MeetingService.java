@@ -9,11 +9,10 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.transaction.Transactional;
 import java.sql.Timestamp;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class MeetingService {
@@ -246,7 +245,8 @@ public class MeetingService {
      * 根据时间统计占座数量
      */
     @Transactional
-    public List<ClassRoom> countOccupySeats(Timestamp startTime,Timestamp endTime){
-        return meetingDao.countSeats(startTime, endTime);
+    public Map<Long, Integer> countOccupySeats(Timestamp startTime, Timestamp endTime){
+        return meetingDao.countSeats(startTime.toString(), endTime.toString()).stream().collect(
+                Collectors.toMap(map -> map.get("roomId"), map -> map.get("remainSeats").intValue(), (l, r) -> l));
     }
 }
