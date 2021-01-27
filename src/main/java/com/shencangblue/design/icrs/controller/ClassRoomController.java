@@ -150,7 +150,7 @@ public class ClassRoomController {
         }
         List<ClassRoom> roomSeats = meetingService.countOccupySeats(startTime, endTime);
         if(!roomSeats.isEmpty()) {
-            Map<Long, Integer> map = roomSeats.stream().collect(
+            Map<Integer, Integer> map = roomSeats.stream().collect(
                 Collectors.toMap(ClassRoom::getRoomId, ClassRoom::getRemainSeats, (l, r) -> l));
             classRooms.forEach(classRoom -> classRoom.setRemainSeats(classRoom.getCapacity() -
                 map.getOrDefault(classRoom.getRoomId(), 0)));
@@ -164,7 +164,7 @@ public class ClassRoomController {
      * @return 教室的Id
      */
     @RequestMapping("/room/idName")
-    public Long getRoomIdByName(@RequestParam("roomName") String roomName){
+    public Integer getRoomIdByName(@RequestParam("roomName") String roomName){
         System.out.println(classRoomService.getRoomByName(roomName).getRoomId());
         return classRoomService.getRoomByName(roomName).getRoomId();
     }

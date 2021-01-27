@@ -6,7 +6,7 @@ import org.springframework.data.repository.CrudRepository;
 
 import java.util.List;
 
-public interface ClassRoomDao extends CrudRepository<ClassRoom,Long> {
+public interface ClassRoomDao extends CrudRepository<ClassRoom,Integer> {
 
     List<ClassRoom> findAllByCapacityBetween(int capacity, int larger);
 

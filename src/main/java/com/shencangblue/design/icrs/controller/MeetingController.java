@@ -1,26 +1,34 @@
 package com.shencangblue.design.icrs.controller;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import com.shencangblue.design.icrs.model.ClassRoom;
 import com.shencangblue.design.icrs.model.Meeting;
 import com.shencangblue.design.icrs.model.User;
 import com.shencangblue.design.icrs.result.Result;
 import com.shencangblue.design.icrs.result.ResultFactory;
+import com.shencangblue.design.icrs.service.ClassRoomService;
 import com.shencangblue.design.icrs.service.MeetingService;
 import com.shencangblue.design.icrs.service.UserService;
+import org.apache.commons.collections.keyvalue.MultiKey;
+import org.apache.commons.collections.map.MultiKeyMap;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjuster;
+import java.time.temporal.TemporalAdjusters;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @RestController
 @RequestMapping("/api")
@@ -28,7 +36,7 @@ public class MeetingController {
     @Resource
     MeetingService meetingService;
     @Resource
-    UserService userService;
+    ClassRoomService classRoomService;
     Timestamp nowTime;
     Timestamp tomTime;
 
@@ -191,26 +199,23 @@ public class MeetingController {
      */
     @RequestMapping("/queryReservationOfCurrentDate")
     public Result QueryReservationOfCurrentDate() {
-        //List<List<List<Integer>>> d2AList = new ArrayList<List<List<Integer>>>();
-        List<int[]> list = new ArrayList<>();
-        nowTime = new Timestamp(new Date().getTime());
-        tomTime = new Timestamp(new Date().getTime());
-        nowTime.setHours(0);
-        nowTime.setSeconds(0);
-        nowTime.setMinutes(0);
-        nowTime.setNanos(0);
-        tomTime.setHours(0);
-        tomTime.setSeconds(0);
-        tomTime.setMinutes(0);
-        tomTime.setNanos(0);
-        tomTime.setDate(tomTime.getDate() + 1);
-        int count = 0;
-        for (Meeting meeting : meetingService.findAllByStartTimeBetweenAndStatusGreaterThan(nowTime, tomTime, 0)) {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
 
-            list.add(new int[]{count, meeting.getStartTime().getHours(), meeting.getNumberOfParticipants()});
-            count++;
+        Iterable<Meeting> meetings = meetingService.findAllByStartTimeBetweenAndStatusGreaterThan(Timestamp.valueOf(startOfDay), Timestamp.valueOf(endOfDay), 0);
 
+        Table<Integer, Integer, Integer> table = HashBasedTable.create();
+        for (Meeting meeting : meetings) {
+            int start = meeting.getStartTime().toLocalDateTime().plusMinutes(30).getHour();
+            int end = meeting.getEndTime().toLocalDateTime().minusMinutes(30).getHour();
+            for (int i = start; i <= end; i++) {
+                Integer count = table.get(i, meeting.getRoomId());
+                count = count != null? count + 1 : 1;
+                table.put(i, meeting.getRoomId(), count);
+            }
         }
+        List<int[]> list = table.cellSet().stream().map(cell -> new int[]{cell.getRowKey(), cell.getColumnKey(), cell.getValue()}).collect(Collectors.toList());
+
         return ResultFactory.buildSuccessResult(list);
     }
 
@@ -304,14 +309,88 @@ public class MeetingController {
      *
      * @return 预约情况
      */
-    @RequestMapping("/queryReservationStats")
-    public Result querySevenDayMeetOfUser(@RequestBody Meeting meeting) {
+    @RequestMapping("/queryReservationStatsOfRecently")
+    public Result queryReservationStatsOfRecently(@RequestBody Meeting meeting) {
+        Timestamp startTime = meeting.getStartTime();
+        Timestamp endTime = meeting.getEndTime();
+        if(startTime == null || endTime == null) {
+            LocalDateTime nowTime = LocalDateTime.now();
+            startTime = Timestamp.valueOf(nowTime.minusDays(7));
+            endTime = Timestamp.valueOf(nowTime);
+        }
         List<Integer> status = new ArrayList<>(2);
         status.add(meeting.getStatus());
         if(meeting.getStatus() == 1) {
             status.add(2);
         }
-        return ResultFactory.buildSuccessResult(meetingService.queryReservationStats(meeting.getStartTime(), meeting.getEndTime(), status));
+        Iterable<Meeting> iterable= meetingService.queryReservationStats(startTime, endTime, status);
+        Map<String, Map<Integer, Long>> date2RoomId2Count = StreamSupport.stream(iterable.spliterator(), true)
+                .collect(Collectors.groupingBy(m -> m.getStartTime().toLocalDateTime().format(DateTimeFormatter.ISO_DATE),
+                Collectors.groupingBy(Meeting::getRoomId, Collectors.counting())));
+
+        LocalDate endDay = endTime.toLocalDateTime().toLocalDate();
+        List<String> dayList = new ArrayList<>();
+        long between = ChronoUnit.DAYS.between(startTime.toInstant(), endTime.toInstant());
+        for (long i = between; i >= 0 ; i++) {
+            dayList.add(endDay.minusMonths(between).toString());
+        }
+
+        List<List> table = getTable(dayList, date2RoomId2Count);
+        return ResultFactory.buildSuccessResult(table);
+    }
+
+    /**
+     * 查询已预约座位统计和违规统计
+     *
+     * @return 预约情况
+     */
+    @RequestMapping("/queryReservationStatsOfYear")
+    public Result queryReservationStatsOfYear(@RequestParam Integer year, @RequestParam List<Integer> status) {
+        LocalDate now = LocalDate.now();
+        if(year == null || year < 2000) {
+           year = now.getYear();
+        }
+        Timestamp startTime = Timestamp.valueOf(LocalDate.ofYearDay(year, 1).atTime(LocalTime.MIN));
+        Timestamp endTime = Timestamp.valueOf(LocalDate.now().with(TemporalAdjusters.lastDayOfYear()).atTime(LocalTime.MAX));
+        if(now.getYear() == year) {
+            endTime = Timestamp.valueOf(endTime.toLocalDateTime().withMonth(now.getMonthValue()));
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yy-MM");
+        Iterable<Meeting> iterable= meetingService.queryReservationStats(startTime, endTime, status);
+        Map<String, Map<Integer, Long>> date2RoomId2Count = StreamSupport.stream(iterable.spliterator(), true)
+                .collect(Collectors.groupingBy(m -> m.getStartTime().toLocalDateTime().format(formatter),
+                        Collectors.groupingBy(Meeting::getRoomId, Collectors.counting())));
+
+        LocalDateTime endMonth = endTime.toLocalDateTime();
+        List<String> monthList = new ArrayList<>();
+        long between = ChronoUnit.MONTHS.between(startTime.toInstant(), endTime.toInstant());
+        for (long i = between; i >= 0 ; i++) {
+            monthList.add(endMonth.minusMonths(between).format(formatter));
+        }
+
+        List<List> table = getTable(monthList, date2RoomId2Count);
+        return ResultFactory.buildSuccessResult(table);
+    }
+
+    private List<List> getTable(List<String> list, Map<String, Map<Integer, Long>> date2RoomId2Count) {
+        List<ClassRoom> classRooms = new LinkedList<>();
+        classRoomService.getAll().forEach(classRooms::add);
+
+        List<List> table = new ArrayList<>(list.size());
+        for (String date : list) {
+            List<Object> row= new ArrayList<>(classRooms.size() + 1);
+            row.add(date);
+            Map<Integer, Long> roomId2Count = date2RoomId2Count.get(date);
+            for (ClassRoom room : classRooms) {
+                Long count = roomId2Count.getOrDefault(room.getRoomId(), 0L);
+                row.add(count);
+            }
+            table.add(row);
+        }
+        List<String> head = classRooms.stream().map(ClassRoom::getRoomName).collect(Collectors.toList());
+        head.add(0, "");
+        table.add(0, head);
+        return table;
     }
 
     /**
@@ -323,6 +402,8 @@ public class MeetingController {
     public Result checkTimeConflict(@RequestBody Meeting meeting) {
         return ResultFactory.buildSuccessResult(meetingService.checkTimeConflict(meeting));
     }
+
+
 
 }
 

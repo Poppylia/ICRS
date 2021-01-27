@@ -11,7 +11,7 @@ import javax.persistence.Transient;
 public class ClassRoom {
     @Id
     @GeneratedValue
-    private long roomId;//房间iD
+    private int roomId;//房间iD
     private int roomNum;//房间号码
     private String roomName;//房间名
     private int rows;//行数
@@ -27,7 +27,7 @@ public class ClassRoom {
 
     public ClassRoom(){}
 
-    public ClassRoom(long roomId,int roomNum,String roomName,int capacity,int status,String description,String position){
+    public ClassRoom(int roomId,int roomNum,String roomName,int capacity,int status,String description,String position){
         this.roomId= roomId;
         this.roomNum=roomNum;
         this.roomName =roomName;
@@ -38,11 +38,11 @@ public class ClassRoom {
     }
 
 
-    public long getRoomId() {
+    public int getRoomId() {
         return roomId;
     }
 
-    public void setRoomId(long roomId) {
+    public void setRoomId(int roomId) {
         this.roomId = roomId;
     }
 

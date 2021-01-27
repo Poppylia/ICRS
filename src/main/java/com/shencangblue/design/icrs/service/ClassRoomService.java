@@ -46,7 +46,7 @@ public class ClassRoomService {
      * @param id 教室的ID
      */
     @Transactional
-    public void delete(Long id){
+    public void delete(int id){
         classRoomDao.deleteById(id);
     }
 
