@@ -1,10 +1,6 @@
 package com.shencangblue.design.icrs.model;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Table;
-import javax.persistence.Transient;
+import javax.persistence.*;
 
 @Entity//加入这个注解，Demo就会进行持久化了，在这里没有对@Table进行配置，请自行配置。
 @Table(name = "class_room")
@@ -84,7 +80,6 @@ public class ClassRoom {
 
     public void setCapacity(int capacity) {
         this.capacity = capacity;
-        this.remainSeats = capacity;
     }
 
     public int getStatus() {
@@ -117,5 +112,10 @@ public class ClassRoom {
 
     public void setRemainSeats(int remainSeats) {
         this.remainSeats = remainSeats;
+    }
+
+    @PostLoad
+    public void setRemainSeats() {
+        this.remainSeats = this.capacity;
     }
 }

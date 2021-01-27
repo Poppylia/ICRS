@@ -16,6 +16,7 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -137,8 +138,8 @@ public class ClassRoomController {
      * @return 查询到的教室
      */
     @CrossOrigin
-    @RequestMapping("/search")
-    public Iterable<ClassRoom> searchResult(@RequestParam("keywords") String keywords, Timestamp startTime, Timestamp endTime){
+    @RequestMapping("/rooms/search")
+    public Iterable<ClassRoom> searchResult(String keywords, Long startTime, Long endTime){
         Iterable<ClassRoom> classRooms;
         if ("".equals(keywords)){
             classRooms = classRoomService.getAll();
@@ -148,12 +149,10 @@ public class ClassRoomController {
         if(startTime == null || endTime == null) {
             return classRooms;
         }
-        List<ClassRoom> roomSeats = meetingService.countOccupySeats(startTime, endTime);
+        Map<Long, Integer> roomSeats = meetingService.countOccupySeats(new Timestamp(startTime), new Timestamp(endTime));
         if(!roomSeats.isEmpty()) {
-            Map<Integer, Integer> map = roomSeats.stream().collect(
-                Collectors.toMap(ClassRoom::getRoomId, ClassRoom::getRemainSeats, (l, r) -> l));
             classRooms.forEach(classRoom -> classRoom.setRemainSeats(classRoom.getCapacity() -
-                map.getOrDefault(classRoom.getRoomId(), 0)));
+                roomSeats.getOrDefault(classRoom.getRoomId(), 0)));
         }
         return classRooms;
     }
