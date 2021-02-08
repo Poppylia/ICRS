@@ -6,43 +6,34 @@ import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.Resource;
-import java.util.List;
-
 @Service
 @Transactional
 public class TopicService {
-
-    @Resource
+    @Autowired
     private TopicDao dao;
-
-    public Page<Topic> findList(Integer bbsId, Integer page, Integer size) {
-        Sort timeDesc = Sort.by(Sort.Direction.DESC, "time");
-        PageRequest request = PageRequest.of(page, size, timeDesc);
-        if(bbsId != null) {
-            return dao.findAllByBbsId(bbsId, request);
-        }
-        return dao.findAll(request);
-    }
 
     public Topic findById(Integer id) {
         return dao.getOne(id);
     }
 
-    public List<Topic> findByBbsId(Integer bbsId) {
-        return dao.findAllByBbsId(bbsId);
+    public Page<Topic> findList(String author, String title, Integer page, Integer size) {
+        Sort timeDesc = Sort.by(Sort.Direction.DESC, "lastReplyTime");
+        PageRequest request = PageRequest.of(page, size, timeDesc);
+        if (Strings.isNotBlank(author) || Strings.isNotBlank(title)) {
+            return dao.findAllByAuthorLikeAndTitleLike(author, title, request);
+        }
+        return dao.findAll(request);
     }
 
     public void save(Topic topic) {
         dao.save(topic);
     }
 
-    public void delete(Integer id){
+    public void delete(Integer id) {
         dao.deleteById(id);
     }
 }
