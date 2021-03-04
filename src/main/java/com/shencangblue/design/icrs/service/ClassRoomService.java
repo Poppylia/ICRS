@@ -7,6 +7,8 @@ import com.shencangblue.design.icrs.model.Meeting;
 import com.shencangblue.design.icrs.utils.BDAipBodyAnalysis;
 import com.shencangblue.design.icrs.utils.FaceDetectionUtils;
 import org.json.JSONObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -14,6 +16,7 @@ import javax.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -56,7 +59,7 @@ public class ClassRoomService {
      * @return 要查找的教室
      */
     @Transactional
-    public ClassRoom getById(Long id){
+    public ClassRoom getById(Integer id){
        return classRoomDao.findById(id).orElse(null);
     }
 
@@ -116,7 +119,7 @@ public class ClassRoomService {
 
     @Transactional
     public Iterable<ClassRoom> findAllUsableRooms(int status){
-     return classRoomDao.findAllByStatus(status);
+     return classRoomDao.findAllByStatus(status).stream().limit(20).collect(Collectors.toList());
     }
 
     @Transactional

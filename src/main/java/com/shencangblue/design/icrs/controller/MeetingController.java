@@ -9,25 +9,21 @@ import com.shencangblue.design.icrs.result.Result;
 import com.shencangblue.design.icrs.result.ResultFactory;
 import com.shencangblue.design.icrs.service.ClassRoomService;
 import com.shencangblue.design.icrs.service.MeetingService;
-import com.shencangblue.design.icrs.service.UserService;
-import org.apache.commons.collections.keyvalue.MultiKey;
-import org.apache.commons.collections.map.MultiKeyMap;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 @RestController
@@ -193,60 +189,6 @@ public class MeetingController {
     }
 
     /**
-     * 查询当前日期所有教室预约情况
-     *
-     * @return 预约情况
-     */
-    @RequestMapping("/queryReservationOfCurrentDate")
-    public Result QueryReservationOfCurrentDate() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
-
-        Iterable<Meeting> meetings = meetingService.findAllByStartTimeBetweenAndStatusGreaterThan(Timestamp.valueOf(startOfDay), Timestamp.valueOf(endOfDay), 0);
-
-        Table<Integer, Integer, Integer> table = HashBasedTable.create();
-        for (Meeting meeting : meetings) {
-            int start = meeting.getStartTime().toLocalDateTime().plusMinutes(30).getHour();
-            int end = meeting.getEndTime().toLocalDateTime().minusMinutes(30).getHour();
-            for (int i = start; i <= end; i++) {
-                Integer count = table.get(i, meeting.getRoomId());
-                count = count != null? count + 1 : 1;
-                table.put(i, meeting.getRoomId(), count);
-            }
-        }
-        List<int[]> list = table.cellSet().stream().map(cell -> new int[]{cell.getRowKey(), cell.getColumnKey(), cell.getValue()}).collect(Collectors.toList());
-
-        return ResultFactory.buildSuccessResult(list);
-    }
-
-    /**
-     * 查询活动预约的状态
-     *
-     * @return
-     */
-    @RequestMapping("/queryReservationOfCurrentDateRoom")
-    public Result QueryReservationOfCurrentDateRoom() {
-        List<String> list = new ArrayList<>();
-        nowTime = new Timestamp(new Date().getTime());
-        tomTime = new Timestamp(new Date().getTime());
-        nowTime.setHours(0);
-        nowTime.setSeconds(0);
-        nowTime.setMinutes(0);
-        nowTime.setNanos(0);
-        tomTime.setHours(0);
-        tomTime.setSeconds(0);
-        tomTime.setMinutes(0);
-        tomTime.setNanos(0);
-        tomTime.setDate(tomTime.getDate() + 1);
-        for (Meeting meeting : meetingService.findAllByStartTimeBetweenAndStatusGreaterThan(nowTime, tomTime, 0)) {
-
-            list.add(meeting.getRoomName());
-            ;
-        }
-        return ResultFactory.buildSuccessResult(list);
-    }
-
-    /**
      * 预约签到
      */
     @RequestMapping("/meeting/checkIn")
@@ -284,7 +226,7 @@ public class MeetingController {
      */
     @RequestMapping("/checkMeetTimeout")
     public Result checkMeetTimeout() {
-        nowTime = new Timestamp(new Date().getTime());
+        Timestamp nowTime = Timestamp.valueOf(LocalDateTime.now());
         Iterable<Meeting> meetings = meetingService.findAllByEndTimeBefore(nowTime);
         for (Meeting meeting : meetings) {
             meeting.setStatus(-1);
@@ -292,6 +234,37 @@ public class MeetingController {
         }
         meetingService.saveAll(meetings);
         return ResultFactory.buildSuccessResult("更新状态成功");
+    }
+
+    /**
+     * 查询当前日期所有教室预约情况
+     *
+     * @return 预约情况
+     */
+    @RequestMapping("/queryReservationOfCurrentDate")
+    public Result QueryReservationOfCurrentDate() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+
+        Iterable<Meeting> meetings = meetingService.findAllByStartTimeBetweenAndStatusGreaterThan(Timestamp.valueOf(startOfDay), Timestamp.valueOf(endOfDay), 0);
+
+        Map<Integer, String> roomId2Names = new TreeMap<>();
+        Table<Integer, Integer, Integer> table = HashBasedTable.create();
+        for (Meeting meeting : meetings) {
+            int start = meeting.getStartTime().toLocalDateTime().plusMinutes(30).getHour();
+            int end = meeting.getEndTime().toLocalDateTime().minusMinutes(30).getHour();
+            for (int i = start; i <= end; i++) {
+                Integer count = table.get(i, meeting.getRoomId());
+                count = count != null? count + 1 : 1;
+                table.put(i, meeting.getRoomId(), count);
+            }
+            roomId2Names.put(meeting.getRoomId(), meeting.getRoomName());
+        }
+        List<Object[]> list = table.cellSet().stream().map(cell ->
+                new Object[]{cell.getRowKey(), roomId2Names.get(cell.getColumnKey()), cell.getValue()})
+                .collect(Collectors.toList());
+
+        return ResultFactory.buildSuccessResult(list);
     }
 
     /**
@@ -305,7 +278,7 @@ public class MeetingController {
     }
 
     /**
-     * 查询已预约座位统计和违规统计
+     * 查询近一个月座位统计和违规统计(按天)
      *
      * @return 预约情况
      */
@@ -331,8 +304,8 @@ public class MeetingController {
         LocalDate endDay = endTime.toLocalDateTime().toLocalDate();
         List<String> dayList = new ArrayList<>();
         long between = ChronoUnit.DAYS.between(startTime.toInstant(), endTime.toInstant());
-        for (long i = between; i >= 0 ; i++) {
-            dayList.add(endDay.minusMonths(between).toString());
+        for (long i = between; i >= 0 ; i--) {
+            dayList.add(endDay.minusDays(i).toString());
         }
 
         List<List> table = getTable(dayList, date2RoomId2Count);
@@ -340,7 +313,7 @@ public class MeetingController {
     }
 
     /**
-     * 查询已预约座位统计和违规统计
+     * 查询近一年座位统计和违规统计(按月)
      *
      * @return 预约情况
      */
@@ -350,22 +323,21 @@ public class MeetingController {
         if(year == null || year < 2000) {
            year = now.getYear();
         }
-        Timestamp startTime = Timestamp.valueOf(LocalDate.ofYearDay(year, 1).atTime(LocalTime.MIN));
-        Timestamp endTime = Timestamp.valueOf(LocalDate.now().with(TemporalAdjusters.lastDayOfYear()).atTime(LocalTime.MAX));
+        LocalDateTime startTime = LocalDate.ofYearDay(year, 1).atTime(LocalTime.MIN);
+        LocalDateTime endTime = LocalDate.of(year, 12, 31).atTime(LocalTime.MAX);
         if(now.getYear() == year) {
-            endTime = Timestamp.valueOf(endTime.toLocalDateTime().withMonth(now.getMonthValue()));
+            endTime = endTime.withMonth(now.getMonthValue());
         }
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yy-MM");
-        Iterable<Meeting> iterable= meetingService.queryReservationStats(startTime, endTime, status);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        Iterable<Meeting> iterable= meetingService.queryReservationStats(Timestamp.valueOf(startTime), Timestamp.valueOf(endTime), status);
         Map<String, Map<Integer, Long>> date2RoomId2Count = StreamSupport.stream(iterable.spliterator(), true)
                 .collect(Collectors.groupingBy(m -> m.getStartTime().toLocalDateTime().format(formatter),
                         Collectors.groupingBy(Meeting::getRoomId, Collectors.counting())));
 
-        LocalDateTime endMonth = endTime.toLocalDateTime();
         List<String> monthList = new ArrayList<>();
-        long between = ChronoUnit.MONTHS.between(startTime.toInstant(), endTime.toInstant());
-        for (long i = between; i >= 0 ; i++) {
-            monthList.add(endMonth.minusMonths(between).format(formatter));
+        long between = ChronoUnit.MONTHS.between(startTime, endTime);
+        for (long i = between; i >= 0 ; i--) {
+            monthList.add(endTime.minusMonths(i).format(formatter));
         }
 
         List<List> table = getTable(monthList, date2RoomId2Count);
@@ -380,15 +352,16 @@ public class MeetingController {
         for (String date : list) {
             List<Object> row= new ArrayList<>(classRooms.size() + 1);
             row.add(date);
-            Map<Integer, Long> roomId2Count = date2RoomId2Count.get(date);
-            for (ClassRoom room : classRooms) {
-                Long count = roomId2Count.getOrDefault(room.getRoomId(), 0L);
-                row.add(count);
-            }
+            Optional.ofNullable(date2RoomId2Count.get(date)).ifPresent(roomId2Count -> {
+                for (ClassRoom room : classRooms) {
+                    Long count = roomId2Count.getOrDefault(room.getRoomId(), 0L);
+                    row.add(count);
+                }
+            });
             table.add(row);
         }
         List<String> head = classRooms.stream().map(ClassRoom::getRoomName).collect(Collectors.toList());
-        head.add(0, "");
+        head.add(0, "日期");
         table.add(0, head);
         return table;
     }
@@ -400,7 +373,8 @@ public class MeetingController {
      */
     @RequestMapping("/checkTimeConflict")
     public Result checkTimeConflict(@RequestBody Meeting meeting) {
-        return ResultFactory.buildSuccessResult(meetingService.checkTimeConflict(meeting));
+        String error = meetingService.checkTimeConflict(meeting);
+        return error.isEmpty() ? ResultFactory.buildSuccessResult(true) : ResultFactory.buildFailResult(error);
     }
 
 

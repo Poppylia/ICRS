@@ -1,6 +1,10 @@
 package com.shencangblue.design.icrs.model;
 
 import javax.persistence.*;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
 
 @Entity//加入这个注解，Demo就会进行持久化了，在这里没有对@Table进行配置，请自行配置。
 @Table(name = "class_room")

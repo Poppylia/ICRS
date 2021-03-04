@@ -112,7 +112,7 @@ public class ClassRoomController {
     @CrossOrigin
     @RequestMapping("/rooms/update")
     public String update(){
-        return classRoomService.update(3L,classRoomService.getById(3L))!=null?"sec":"fal";
+        return classRoomService.update(3L,classRoomService.getById(3))!=null?"sec":"fal";
     }
 
 
@@ -149,7 +149,7 @@ public class ClassRoomController {
         if(startTime == null || endTime == null) {
             return classRooms;
         }
-        Map<Long, Integer> roomSeats = meetingService.countOccupySeats(new Timestamp(startTime), new Timestamp(endTime));
+        Map<Integer, Integer> roomSeats = meetingService.countOccupySeats(new Timestamp(startTime), new Timestamp(endTime));
         if(!roomSeats.isEmpty()) {
             classRooms.forEach(classRoom -> classRoom.setRemainSeats(classRoom.getCapacity() -
                 roomSeats.getOrDefault(classRoom.getRoomId(), 0)));
